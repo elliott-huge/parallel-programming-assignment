@@ -107,7 +107,7 @@ kernel void reduce_add_4(global const int* A, global int* B, local int* scratch)
 }
 
 //mykernel
-kernel void reduce_add_assignment(global const int* A, global int* B, local int* scratch) {
+kernel void reduce_add_assignment_step_1(global const int* A, global int* B, local int* scratch) {
 	int id = get_global_id(0);
 	int lid = get_local_id(0);
 	int N = get_local_size(0);
@@ -119,6 +119,9 @@ kernel void reduce_add_assignment(global const int* A, global int* B, local int*
 
 	barrier(CLK_LOCAL_MEM_FENCE);//wait for all local threads to finish copying from global to local memory
 
+	// sequential reduce using bit shift
+	// inspired from nvidia cuda lecture slides
+	// https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf
 	for (int i = N/2; i > 0; i >>= 1) {
 		if (lid < i) 
 			scratch[lid] += scratch[lid + i];
