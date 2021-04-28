@@ -121,3 +121,31 @@
 		}
 		//update array here
 		*/
+
+		/*
+				//host - output
+				size_t output_size = B.size()*sizeof(mytype);//size in bytes
+
+				//device - buffers
+				cl::Buffer buffer_A(context, CL_MEM_READ_ONLY, input_size);
+				cl::Buffer buffer_B(context, CL_MEM_READ_WRITE, output_size);
+
+				//Part 4 - device operations
+
+				//4.1 copy array A to and initialise other arrays on device memory
+				queue.enqueueWriteBuffer(buffer_A, CL_TRUE, 0, input_size, &A[0]);
+				queue.enqueueFillBuffer(buffer_B, 0, 0, output_size);//zero B buffer on device memory
+
+				//4.2 Setup and execute all kernels (i.e. device code)
+				cl::Kernel kernel_1 = cl::Kernel(program, "reduce_add_assignment_step_1");
+				kernel_1.setArg(0, buffer_A);
+				kernel_1.setArg(1, buffer_B);
+				kernel_1.setArg(2, cl::Local(local_size*sizeof(mytype)));//local memory size
+
+				//call all kernels in a sequence
+				queue.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(input_element_count), cl::NDRange(local_size));
+
+
+				//4.3 Copy the result from device to host
+				queue.enqueueReadBuffer(buffer_B, CL_TRUE, 0, output_size, &B[0]);
+				*/

@@ -58,13 +58,13 @@ int main(int argc, char **argv) {
 
 		//Part 3 - memory allocation
 		//host - input
-		std::vector<mytype> A(555, 3);
+		std::vector<mytype> A(1800000, 5);
 
 		//the following part adjusts the length of the input vector so it can be run for a specific workgroup size
 		//if the total input length is divisible by the workgroup size
 		//this makes the code more efficient
 		size_t local_size = 256;
-
+		int initial_size = A.size();
 		size_t padding_size = A.size() % local_size;
 
 		//if the input vector is not a multiple of the local_size
@@ -77,17 +77,18 @@ int main(int argc, char **argv) {
 		}
 
 		// B vector
-		std::vector<mytype> B;
+		std::vector<mytype> B(2, 0);
 
 		// begin while?
 		// while Bsize > workgroup size
-		do while (B.size() > 1)
+		while (B.size() > 1)
 		{
 			// set sizing
 			size_t input_element_count = A.size();
 			size_t input_size = A.size() * sizeof(mytype);
 			size_t nr_groups = input_element_count / local_size;
 
+			// resize & zero vector B (update nr_groups)
 			B.resize(nr_groups, 0);
 			B.shrink_to_fit();
 
@@ -110,45 +111,24 @@ int main(int argc, char **argv) {
 			//retrieve output
 			queue.enqueueReadBuffer(buffer_B, CL_TRUE, 0, output_size, &B[0]);
 
-			//test
+			// then assign vector B's values to vector A after resizing
 			A.resize(B.size());
 			A.shrink_to_fit();
-			A = B;
-
-			// then assign array B's values to array A after resizing
-			// resize array B (update nr_groups)
-			// recalculate 
-			// /loop
 			
+			A = B;
+			// looks awful but this is passed by value so it works A-ok
+
+			// repadd if applicable, otherwise the kernels will fret over buffer-size
+			padding_size = A.size() % local_size;
+			if (padding_size) {
+				std::vector<int> A_ext(local_size - padding_size, 0);
+				A.insert(A.end(), A_ext.begin(), A_ext.end());
+			}
 		}
-		
-		//host - output
-		size_t output_size = B.size()*sizeof(mytype);//size in bytes
-
-		//device - buffers
-		cl::Buffer buffer_A(context, CL_MEM_READ_ONLY, input_size);
-		cl::Buffer buffer_B(context, CL_MEM_READ_WRITE, output_size);
-
-		//Part 4 - device operations
-
-		//4.1 copy array A to and initialise other arrays on device memory
-		queue.enqueueWriteBuffer(buffer_A, CL_TRUE, 0, input_size, &A[0]);
-		queue.enqueueFillBuffer(buffer_B, 0, 0, output_size);//zero B buffer on device memory
-
-		//4.2 Setup and execute all kernels (i.e. device code)
-		cl::Kernel kernel_1 = cl::Kernel(program, "reduce_add_assignment_step_1");
-		kernel_1.setArg(0, buffer_A);
-		kernel_1.setArg(1, buffer_B);
-		kernel_1.setArg(2, cl::Local(local_size*sizeof(mytype)));//local memory size
-
-		//call all kernels in a sequence
-		queue.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(input_element_count), cl::NDRange(local_size));
+		int averageVal = B[0] / initial_size;
 
 		
-		//4.3 Copy the result from device to host
-		queue.enqueueReadBuffer(buffer_B, CL_TRUE, 0, output_size, &B[0]);
-
-		//std::cout << "A = " << A << std::endl;
+		std::cout << "AverageVal = " << averageVal << std::endl;
 		std::cout << "B = " << B << std::endl;
 	}
 	catch (cl::Error err) {
