@@ -107,7 +107,7 @@ kernel void reduce_add_4(global const int* A, global int* B, local int* scratch)
 }
 
 //mykernel
-kernel void reduce_add_assignment_step_1(global const int* A, global int* B, local int* scratch) {
+kernel void reduce_add_assignment(global const int* A, global int* B, local int* scratch) {
 	int id = get_global_id(0);
 	int lid = get_local_id(0);
 	int N = get_local_size(0);
@@ -130,6 +130,68 @@ kernel void reduce_add_assignment_step_1(global const int* A, global int* B, loc
 	}
 
 	B[gid] = scratch[0];
+}
+
+kernel void reduce_minimum_assignment(global const int* A, global int* B, local int* scratch) {
+	int id = get_global_id(0);
+	int lid = get_local_id(0);
+	int N = get_local_size(0);
+	// group id used to output index for array B
+	int gid = get_group_id(0);
+
+	//cache all N values from global memory to local memory
+	scratch[lid] = A[id];
+
+	barrier(CLK_LOCAL_MEM_FENCE);//wait for all local threads to finish copying from global to local memory
+
+	// sequential reduce using bit shift
+	// inspired from nvidia CUDA lecture slides
+	// https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf
+	for (int i = N/2; i > 0; i >>= 1) {
+		if (lid < i) 
+			if (scratch[lid] > scratch[lid + i] && scratch[lid] != 0 && scratch[lid + i] != 0)
+				scratch[lid] = scratch[lid + i];
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+	}
+
+	B[gid] = scratch[0];
+}
+
+kernel void reduce_maximum_assignment(global const int* A, global int* B, local int* scratch) {
+	int id = get_global_id(0);
+	int lid = get_local_id(0);
+	int N = get_local_size(0);
+	// group id used to output index for array B
+	int gid = get_group_id(0);
+
+	//cache all N values from global memory to local memory
+	scratch[lid] = A[id];
+
+	barrier(CLK_LOCAL_MEM_FENCE);//wait for all local threads to finish copying from global to local memory
+
+	// sequential reduce using bit shift
+	// inspired from nvidia CUDA lecture slides
+	// https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf
+	for (int i = N/2; i > 0; i >>= 1) {
+		if (lid < i) 
+			if (scratch[lid] < scratch[lid + i] && scratch[lid] != 0 && scratch[lid + i] != 0)
+				scratch[lid] = scratch[lid + i];
+
+		barrier(CLK_LOCAL_MEM_FENCE);
+	}
+
+	B[gid] = scratch[0];
+}
+
+kernel void map_sd_assignment(global const int* A, global int* B, const int meanVal) {
+	int id = get_global_id(0);
+	// local memory & barriers not needed since entire operation is a map
+	if (A[id] != 0)
+	{
+		int inter = A[id]-meanVal;
+		B[id] = inter*inter;
+	}
 }
 
 

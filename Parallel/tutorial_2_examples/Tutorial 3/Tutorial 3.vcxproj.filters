@@ -3,6 +3,7 @@
   <ItemGroup>
     <ClCompile Include="Tutorial 3.cpp" />
     <ClCompile Include="experiments.cpp" />
+    <ClCompile Include="AssignmentFunctions.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="kernels">
@@ -21,5 +22,6 @@
     <ClInclude Include="..\include\Utils.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="AssignmentFunctions.h" />
   </ItemGroup>
 </Project>

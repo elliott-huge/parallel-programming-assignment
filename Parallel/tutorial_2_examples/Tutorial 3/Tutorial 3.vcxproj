@@ -184,6 +184,7 @@
     <Intel_OpenCL_Build_Rules Include="my_kernels.cl" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AssignmentFunctions.cpp" />
     <ClCompile Include="experiments.cpp" />
     <ClCompile Include="Tutorial 3.cpp" />
   </ItemGroup>
@@ -192,6 +193,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\Utils.h" />
+    <ClInclude Include="AssignmentFunctions.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

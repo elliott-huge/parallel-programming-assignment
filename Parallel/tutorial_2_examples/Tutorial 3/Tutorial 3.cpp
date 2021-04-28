@@ -1,7 +1,5 @@
-#include <iostream>
-#include <vector>
 
-#include "Utils.h"
+#include "AssignmentFunctions.h"
 
 void print_help() {
 	std::cerr << "Application usage:" << std::endl;
@@ -54,82 +52,36 @@ int main(int argc, char **argv) {
 			throw err;
 		}
 
-		typedef int mytype;
-
+		AssignmentFunctions AF(context, queue, program);
 		//Part 3 - memory allocation
 		//host - input
-		std::vector<mytype> A(1800000, 5);
+		//std::vector<mytype> A(1800000, 5);
 
-		//the following part adjusts the length of the input vector so it can be run for a specific workgroup size
-		//if the total input length is divisible by the workgroup size
-		//this makes the code more efficient
-		size_t local_size = 256;
-		int initial_size = A.size();
-		size_t padding_size = A.size() % local_size;
+		std::vector<mytype> initialVec{ 1,7,3,6,7,43,6,7,32,34,5,12312,34,21,34,456,90,2,2,2,2,1,3,4,5 };
+		int initial_size = initialVec.size();
+		int local_size = 256;
 
-		//if the input vector is not a multiple of the local_size
-		//insert additional neutral elements (0 for addition) so that the total will not be affected
-		if (padding_size) {
-			//create an extra vector with neutral values
-			std::vector<int> A_ext(local_size-padding_size, 0);
-			//append that extra vector to our input
-			A.insert(A.end(), A_ext.begin(), A_ext.end());
-		}
+		std::vector<mytype> Total = AF.callReduceFunction(initialVec, "reduce_add_assignment", local_size);
 
-		// B vector
-		std::vector<mytype> B(2, 0);
+		int averageVal = Total[0] / initial_size;
 
-		// begin while?
-		// while Bsize > workgroup size
-		while (B.size() > 1)
-		{
-			// set sizing
-			size_t input_element_count = A.size();
-			size_t input_size = A.size() * sizeof(mytype);
-			size_t nr_groups = input_element_count / local_size;
-
-			// resize & zero vector B (update nr_groups)
-			B.resize(nr_groups, 0);
-			B.shrink_to_fit();
-
-			size_t output_size = B.size() * sizeof(mytype);
-
-			//set buffers
-			cl::Buffer buffer_A(context, CL_MEM_READ_ONLY, input_size);
-			cl::Buffer buffer_B(context, CL_MEM_READ_WRITE, output_size);
-			queue.enqueueWriteBuffer(buffer_A, CL_TRUE, 0, input_size, &A[0]);
-			queue.enqueueFillBuffer(buffer_B, 0, 0, output_size);//zero B buffer on device memory
-
-			//run kernels
-			cl::Kernel kernel_1 = cl::Kernel(program, "reduce_add_assignment_step_1");
-			kernel_1.setArg(0, buffer_A);
-			kernel_1.setArg(1, buffer_B);
-			kernel_1.setArg(2, cl::Local(local_size * sizeof(mytype)));//local memory size
-
-			queue.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(input_element_count), cl::NDRange(local_size));
-
-			//retrieve output
-			queue.enqueueReadBuffer(buffer_B, CL_TRUE, 0, output_size, &B[0]);
-
-			// then assign vector B's values to vector A after resizing
-			A.resize(B.size());
-			A.shrink_to_fit();
-			
-			A = B;
-			// looks awful but this is passed by value so it works A-ok
-
-			// repadd if applicable, otherwise the kernels will fret over buffer-size
-			padding_size = A.size() % local_size;
-			if (padding_size) {
-				std::vector<int> A_ext(local_size - padding_size, 0);
-				A.insert(A.end(), A_ext.begin(), A_ext.end());
-			}
-		}
-		int averageVal = B[0] / initial_size;
-
-		
+		std::cout << "Total = " << Total << std::endl;
 		std::cout << "AverageVal = " << averageVal << std::endl;
-		std::cout << "B = " << B << std::endl;
+
+		std::vector<mytype> sigmoidComponent = AF.callMapFunction(initialVec, "map_sd_assignment", local_size, averageVal);
+
+		std::vector<mytype> sigmoidTotal = AF.callReduceFunction(sigmoidComponent, "reduce_add_assignment", local_size);
+
+		std::vector<mytype> minInit = AF.callReduceFunction(initialVec, "reduce_minimum_assignment", local_size);
+
+		std::vector<mytype> maxInit = AF.callReduceFunction(initialVec, "reduce_maximum_assignment", local_size);
+
+		std::cout << "Min = " << minInit << std::endl;
+		std::cout << "Max = " << maxInit << std::endl;
+
+
+		//std::cout << "AverageVal = " << averageVal << std::endl;
+		std::cout << "SigmoidTotal = " << sigmoidTotal << std::endl;
 	}
 	catch (cl::Error err) {
 		std::cerr << "ERROR: " << err.what() << ", " << getErrorString(err.err()) << std::endl;
