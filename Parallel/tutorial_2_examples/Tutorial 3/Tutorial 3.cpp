@@ -24,6 +24,8 @@ int main(int argc, char **argv) {
 
 	//detect any potential exceptions
 	try {
+		
+
 		//Part 2 - host operations
 		//2.1 Select computing devices
 		cl::Context context = GetContext(platform_id, device_id);
@@ -56,32 +58,84 @@ int main(int argc, char **argv) {
 		//Part 3 - memory allocation
 		//host - input
 		//std::vector<mytype> A(1800000, 5);
+		// import le data
+		
+		string text;
+		char delimiter = ' ';
+		std::vector<string> splitText;
+		std::vector<mytype> initialVec;
+		std::vector<mytypef> initialVecf;
+		int i = 1;
+		std::ifstream txtFile("../../temp_lincolnshire_datasets/temp_lincolnshire_short.txt");
+		while (getline(txtFile, text)) {
+			size_t start = 0;
+			size_t end = 0;
+			while (end < text.length() && start < text.length()) {
+				end = text.find(delimiter, start);
 
-		std::vector<mytype> initialVec{ 1,7,3,6,7,43,6,7,32,34,5,12312,34,21,34,456,90,2,2,2,2,1,3,4,5 };
-		int initial_size = initialVec.size();
+				if (end == string::npos)
+					end = text.length();
+				string tok = text.substr(start, end - start);
+				if (!tok.empty())
+					splitText.push_back(tok);
+				start = end + 1;
+				//cout << splitText << endl;
+			}
+
+			initialVecf.push_back(stof(splitText[(6 * i) - 1]));
+			i++;
+		}
+		txtFile.close();
+		
+		cout << initialVecf << endl;
+		// testing occurs here
+		std::vector<mytypef> testVecf{ 1.1,2.8,3.9,1.1,1.4,1.5,6.3,8.2,5.999,12.2,0.0,0.1 };
+		int initial_size = initialVecf.size();
 		int local_size = 256;
 
-		std::vector<mytype> Total = AF.callReduceFunction(initialVec, "reduce_add_assignment", local_size);
-
-		int averageVal = Total[0] / initial_size;
-
+		// get average
+		// this will work regardless of temp values being 0.0
+		std::vector<mytypef> Total = AF.callReduceFunctionFloat(initialVecf, "reduce_add_assignment_float", local_size);
+		float averageVal = Total[0] / initial_size;
 		std::cout << "Total = " << Total << std::endl;
 		std::cout << "AverageVal = " << averageVal << std::endl;
 
-		std::vector<mytype> sigmoidComponent = AF.callMapFunction(initialVec, "map_sd_assignment", local_size, averageVal);
+		// get sigmoid
+		// 0.0 INCOMPATIBLE
+		// TODO make work for float
+		//std::vector<mytype> sigmoidComponent = AF.callMapFunction(initialVec, "map_sd_assignment", local_size, averageVal);
 
-		std::vector<mytype> sigmoidTotal = AF.callReduceFunction(sigmoidComponent, "reduce_add_assignment", local_size);
+		// 0.0 version that also works for floats
+		std::vector<mytypef> sigmoidComponentF = AF.callMapFunctionFloat(initialVecf, "map_sd_assignment_float", local_size, averageVal, 0.001);
 
-		std::vector<mytype> minInit = AF.callReduceFunction(initialVec, "reduce_minimum_assignment", local_size);
 
-		std::vector<mytype> maxInit = AF.callReduceFunction(initialVec, "reduce_maximum_assignment", local_size);
 
-		std::cout << "Min = " << minInit << std::endl;
-		std::cout << "Max = " << maxInit << std::endl;
+		// may produce a value too large to be stored lol
+		// 0.0 compatable
+		// TODO make work for float *d
+		std::vector<mytypef> sigmoidTotal = AF.callReduceFunctionFloat(sigmoidComponentF, "reduce_add_assignment_float", local_size);
+
+		// 0.0 compatable
+		// TODO make work for float *d
+		std::vector<mytypef> minInit = AF.callReduceFunctionFloat(initialVecf, "reduce_minimum_assignment_float", local_size);
+		// 0.0 compatable
+		// TODO make work for float *d
+		std::vector<mytypef> maxInit = AF.callReduceFunctionFloat(initialVecf, "reduce_maximum_assignment_float", local_size);
+
+		std::cout << "MinVal = " << minInit << std::endl;
+		std::cout << "MaxVal = " << maxInit << std::endl;
 
 
 		//std::cout << "AverageVal = " << averageVal << std::endl;
-		std::cout << "SigmoidTotal = " << sigmoidTotal << std::endl;
+		//std::cout << "SigmoidTotal = " << sigmoidTotal << std::endl;
+		float variance = sigmoidTotal[0] / initial_size;
+		float sd = sqrt(variance);
+		std::cout << "S.D = " << sd << std::endl;
+
+
+		// TODO calculate standard deviation
+		// square root total
+		// divide by n
 	}
 	catch (cl::Error err) {
 		std::cerr << "ERROR: " << err.what() << ", " << getErrorString(err.err()) << std::endl;
