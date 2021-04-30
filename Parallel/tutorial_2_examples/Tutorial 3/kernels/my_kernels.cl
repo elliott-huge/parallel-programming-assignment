@@ -291,6 +291,42 @@ kernel void map_sd_assignment_float(global const float* A, global float* B, cons
 	}
 }
 
+kernel void bubblesort_assignment_float(global float* A, global float* B) {
+	int id = get_global_id(0);
+	int s = get_global_size(0);
+
+
+	//int lid = get_local_id(0);
+	//int N = get_local_size(0);
+	// group id used to output index for array B
+	//int gid = get_group_id(0);
+
+	float temp = 0.0;
+	
+	for (int i = 0; i < s; i++)
+	{
+		if (i % 2 && id < s-1)
+		{
+			if (A[id] < A[id+1])
+			{
+				temp = A[id];
+				A[id] = A[id+1];
+				A[id+1] = temp;
+			}
+		}
+		else if (id < s-2)
+		{
+			if (A[id+1] < A[id+2])
+			{
+				temp = A[id+1];
+				A[id+1] = A[id+2];
+				A[id+2] = temp;
+			}
+		}
+		barrier(CLK_GLOBAL_MEM_FENCE);
+	}
+	B[id] = A[id];
+}
 
 
 

@@ -301,6 +301,57 @@ std::vector<mytype> AssignmentFunctions::callReduceFunction(std::vector<mytype> 
 
 		return B;
 	}
+	std::vector<mytypef> callSortFunctionFloat(std::vector<mytypef> input, char* kernelName, int wgSize, cl_float optParam = 0.0, float padVal = 0.00001) {
+
+		std::vector<mytypef> initialVec = input;
+		std::vector<mytypef> B;
+		int local_size = wgSize;
+		int padding_size;
+		padding_size = initialVec.size() % local_size;
+		if (padding_size) {
+			std::vector<float> i_ext(local_size - padding_size, padVal);
+			initialVec.insert(initialVec.end(), i_ext.begin(), i_ext.end());
+		}
+
+		size_t input_element_count = initialVec.size();
+		size_t input_size = initialVec.size() * sizeof(mytypef);
+
+		// resize & zero vector B (update nr_groups)
+		B.resize(input_element_count, 0);
+		B.shrink_to_fit();
+
+		size_t output_size = B.size() * sizeof(mytypef);
+
+		//set buffers
+		cl::Buffer buffer_A(contx, CL_MEM_READ_WRITE, input_size);
+		cl::Buffer buffer_B(contx, CL_MEM_READ_WRITE, output_size);
+		que.enqueueWriteBuffer(buffer_A, CL_TRUE, 0, input_size, &initialVec[0]);
+		que.enqueueFillBuffer(buffer_B, 0, 0, output_size);//zero B buffer on device memory
+
+		//run kernels
+		cl::Kernel kernel_1 = cl::Kernel(prog, kernelName);
+		kernel_1.setArg(0, buffer_A);
+		kernel_1.setArg(1, buffer_B);
+
+		que.enqueueNDRangeKernel(kernel_1, cl::NullRange, cl::NDRange(input_element_count), cl::NDRange(local_size));
+
+		//retrieve output
+		que.enqueueReadBuffer(buffer_B, CL_TRUE, 0, output_size, &B[0]);
+
+		int startRm = -1;
+		int endRm = -1;
+		for (int i = 0; i < B.size(); i++)
+		{
+			if (B[i] == padVal && startRm == -1)
+				startRm = i;
+			else if (B[i] == padVal)
+				endRm = i;
+		}
+		B.erase(B.begin() + startRm, B.begin() + endRm);
+
+		return B;
+	}
+
 
 
 private:

@@ -60,16 +60,21 @@ int main(int argc, char **argv) {
 		//std::vector<mytype> A(1800000, 5);
 		// import le data
 		
-		string text;
-		char delimiter = ' ';
-		std::vector<string> splitText;
+		// declare initial vector
 		std::vector<mytype> initialVec;
 		std::vector<mytypef> initialVecf;
-		int i = 1;
-		std::ifstream txtFile("../../temp_lincolnshire_datasets/temp_lincolnshire_short.txt");
+
+		// generic tokeniser and populating initial vector
+		char delimiter = ' ';
+		std::vector<string> splitText(0);
+		std::ifstream txtFile("../../temp_lincolnshire_datasets/temp_lincolnshire.txt");
+		string text;
+		size_t start;
+		size_t end;
 		while (getline(txtFile, text)) {
-			size_t start = 0;
-			size_t end = 0;
+			start = 0;
+			end = 0;
+			splitText.clear();
 			while (end < text.length() && start < text.length()) {
 				end = text.find(delimiter, start);
 
@@ -79,17 +84,15 @@ int main(int argc, char **argv) {
 				if (!tok.empty())
 					splitText.push_back(tok);
 				start = end + 1;
-				//cout << splitText << endl;
 			}
-
-			initialVecf.push_back(stof(splitText[(6 * i) - 1]));
-			i++;
+			initialVecf.push_back(stof(splitText[5]));
 		}
 		txtFile.close();
 		
-		cout << initialVecf << endl;
+		//cout << initialVecf << endl;
 		// testing occurs here
-		std::vector<mytypef> testVecf{ 1.1,2.8,3.9,1.1,1.4,1.5,6.3,8.2,5.999,12.2,0.0,0.1 };
+		//  1.1,2.8,3.9,1.1,1.4,1.5,6.3,8.2,5.999,12.2,0.0,0.1 
+		std::vector<mytypef> testVecf{1.0, 3.0, 1.0};
 		int initial_size = initialVecf.size();
 		int local_size = 256;
 
@@ -122,6 +125,14 @@ int main(int argc, char **argv) {
 		// TODO make work for float *d
 		std::vector<mytypef> maxInit = AF.callReduceFunctionFloat(initialVecf, "reduce_maximum_assignment_float", local_size);
 
+
+		//ATTEMPT SORT
+		std::vector<mytypef> sorted = AF.callSortFunctionFloat(initialVecf, "bubblesort_assignment_float", local_size);
+		int sortedSize = sorted.size();
+		std::cout << "Sorted Size = " << sortedSize << std::endl;
+		//std::cout << "Median = " << sorted[sortedSize/2] << std::endl;
+		//std::cout << "Upper Quartile = " << sorted[sorted.size() / 4] << std::endl;
+		//std::cout << "Lower Quartile = " << sorted[sorted.size() / 4] << std::endl;
 		std::cout << "MinVal = " << minInit << std::endl;
 		std::cout << "MaxVal = " << maxInit << std::endl;
 
