@@ -1,4 +1,3 @@
-
 #include "AssignmentFunctions.h"
 
 void print_help() {
@@ -24,10 +23,7 @@ int main(int argc, char **argv) {
 
 	//detect any potential exceptions
 	try {
-		
-
 		//Part 2 - host operations
-		//2.1 Select computing devices
 		cl::Context context = GetContext(platform_id, device_id);
 
 		//display the selected device
@@ -55,22 +51,20 @@ int main(int argc, char **argv) {
 		}
 
 		AssignmentFunctions AF(context, queue, program);
-		//Part 3 - memory allocation
-		//host - input
-		//std::vector<mytype> A(1800000, 5);
-		// import le data
 		
 		// declare initial vector
 		std::vector<mytype> initialVec;
 		std::vector<mytypef> initialVecf;
 
-		// generic tokeniser and populating initial vector
+		// generic tokeniser + populating initial vector
 		char delimiter = ' ';
 		std::vector<string> splitText(0);
 		std::ifstream txtFile("../../temp_lincolnshire_datasets/temp_lincolnshire.txt");
 		string text;
 		size_t start;
 		size_t end;
+
+		int e = 0;
 		while (getline(txtFile, text)) {
 			start = 0;
 			end = 0;
@@ -86,68 +80,51 @@ int main(int argc, char **argv) {
 				start = end + 1;
 			}
 			initialVecf.push_back(stof(splitText[5]));
+			e++;
+			if (!(e % 100000))
+				cout << e << " Records Loaded \n";
 		}
 		txtFile.close();
-		
-		//cout << initialVecf << endl;
-		// testing occurs here
-		//  1.1,2.8,3.9,1.1,1.4,1.5,6.3,8.2,5.999,12.2,0.0,0.1 
-		std::vector<mytypef> testVecf{1.0, 3.0, 1.0};
+		cout << "\n \n \n \nFile Loaded. \n";
+		// Test Vector
+		// std::vector<mytypef> testVecf{1.0, 3.0, 1.0};
+
+		// 
 		int initial_size = initialVecf.size();
-		int local_size = 256;
+		int local_size = 512;
 
 		// get average
-		// this will work regardless of temp values being 0.0
 		std::vector<mytypef> Total = AF.callReduceFunctionFloat(initialVecf, "reduce_add_assignment_float", local_size);
 		float averageVal = Total[0] / initial_size;
-		std::cout << "Total = " << Total << std::endl;
-		std::cout << "AverageVal = " << averageVal << std::endl;
 
-		// get sigmoid
-		// 0.0 INCOMPATIBLE
-		// TODO make work for float
-		//std::vector<mytype> sigmoidComponent = AF.callMapFunction(initialVec, "map_sd_assignment", local_size, averageVal);
-
-		// 0.0 version that also works for floats
 		std::vector<mytypef> sigmoidComponentF = AF.callMapFunctionFloat(initialVecf, "map_sd_assignment_float", local_size, averageVal, 0.001);
-
-
-
-		// may produce a value too large to be stored lol
-		// 0.0 compatable
-		// TODO make work for float *d
+		
 		std::vector<mytypef> sigmoidTotal = AF.callReduceFunctionFloat(sigmoidComponentF, "reduce_add_assignment_float", local_size);
-
-		// 0.0 compatable
-		// TODO make work for float *d
+		
 		std::vector<mytypef> minInit = AF.callReduceFunctionFloat(initialVecf, "reduce_minimum_assignment_float", local_size);
-		// 0.0 compatable
-		// TODO make work for float *d
+		
 		std::vector<mytypef> maxInit = AF.callReduceFunctionFloat(initialVecf, "reduce_maximum_assignment_float", local_size);
 
 
 		//ATTEMPT SORT
-		std::vector<mytypef> sorted = AF.callSortFunctionFloat(initialVecf, "bubblesort_assignment_float", local_size);
-		int sortedSize = sorted.size();
-		std::cout << "Sorted Size = " << sortedSize << std::endl;
-		//std::cout << "Median = " << sorted[sortedSize/2] << std::endl;
-		//std::cout << "Upper Quartile = " << sorted[sorted.size() / 4] << std::endl;
+		//std::vector<mytypef> sorted = AF.callSortFunctionFloat(initialVecf, "oddeven_assignment_float", local_size);
+		//int sortedSize = sorted.size();
+		//std::cout << "Median = " << sorted[round(sortedSize * 0.5)] << std::endl;
+		//std::cout << "Upper Quartile = " << sorted[(sorted.size() / 4) * 3] << std::endl;
 		//std::cout << "Lower Quartile = " << sorted[sorted.size() / 4] << std::endl;
+
+
+
+
+		std::cout << "AverageVal = " << averageVal << std::endl;
+		std::cout << "Initial Size = " << initial_size << std::endl;
 		std::cout << "MinVal = " << minInit << std::endl;
 		std::cout << "MaxVal = " << maxInit << std::endl;
-
-
-		//std::cout << "AverageVal = " << averageVal << std::endl;
-		//std::cout << "SigmoidTotal = " << sigmoidTotal << std::endl;
 		float variance = sigmoidTotal[0] / initial_size;
 		float sd = sqrt(variance);
 		std::cout << "S.D = " << sd << std::endl;
-
-
-		// TODO calculate standard deviation
-		// square root total
-		// divide by n
 	}
+
 	catch (cl::Error err) {
 		std::cerr << "ERROR: " << err.what() << ", " << getErrorString(err.err()) << std::endl;
 	}
