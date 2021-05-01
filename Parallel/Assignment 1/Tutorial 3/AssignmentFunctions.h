@@ -17,13 +17,11 @@ private:
 	cl::CommandQueue que;
 	cl::Program prog;
 
-
-
 public:
 	// reset at the beginning of every operation
 	cl_int timeTaken;
 
-	// sums all kernel run times for a total
+	// stores the sum of all kernel run times
 	cl_int totalTimeTaken;
 
 	// common variables
@@ -34,8 +32,6 @@ public:
 		prog = p;
 		totalTimeTaken = 0;
 	}
-
-
 
 	// functions that handle reduce and map operations
 	std::vector<mytypef> callReduceFunctionFloat(std::vector<mytypef> input, char* kernelName, int wgSize, cl_float optParam = 0.0) {
@@ -55,7 +51,7 @@ public:
 		{
 			// handle padding
 
-			padding_size = initial_size % local_size;
+			padding_size = A.size() % local_size;
 			if (padding_size) {
 				std::vector<float> A_ext(local_size - padding_size, 0.0);
 				A.insert(A.end(), A_ext.begin(), A_ext.end());
