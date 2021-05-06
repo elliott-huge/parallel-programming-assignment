@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
 		// Generic tokeniser + populating initial vector
 		char delimiter = ' ';
 		std::vector<string> splitText(0);
-		std::ifstream txtFile("../../temp_lincolnshire_datasets/temp_lincolnshire.txt");
+		std::ifstream txtFile("../../temp_lincolnshire_datasets/temp_lincolnshire_short.txt");
 		string text;
 		size_t start;
 		size_t end;
