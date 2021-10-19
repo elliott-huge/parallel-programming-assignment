@@ -1,5 +1,5 @@
 # Parallel-Programming-Assignment
-An assignment to develop of low-level kernels for data processing.
+An assignment to develop low-level kernels for parallelized data processing
 
 Implemented the various strategies for parallelized data manipulation, .cl file is viewable in:
 
